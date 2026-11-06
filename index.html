@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>India × Sri Lanka</title>
+<meta name="theme-color" content="#FBF6EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16130F" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Our Trip">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- PIN -->
+  <div id="pin" class="pin hidden">
+    <div class="pin-card">
+      <div class="pin-logo">🪷</div>
+      <h1>Our Trip</h1>
+      <p class="muted">India × Sri Lanka</p>
+      <form id="pin-form" autocomplete="off">
+        <input id="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="PIN" aria-label="PIN">
+        <button class="btn primary" type="submit">Open</button>
+      </form>
+      <p id="pin-msg" class="pin-msg"></p>
+    </div>
+  </div>
+
+  <header class="top">
+    <div class="top-row">
+      <div class="brand" id="brand">
+        <h1>India <span class="x">×</span> Sri Lanka</h1>
+        <p id="greeting" class="greeting"></p>
+      </div>
+      <button id="refresh" class="icon-btn" aria-label="Refresh">↻</button>
+      <label class="switch" title="Booking mode">
+        <input type="checkbox" id="booking-toggle">
+        <span class="track"><span class="thumb"></span></span>
+        <span class="switch-label">Booking</span>
+      </label>
+    </div>
+    <div class="tuktuk-lane" id="tuktuk"><span>🛺</span></div>
+  </header>
+
+  <main id="view"></main>
+  <div id="map-wrap" class="map-wrap hidden">
+    <div class="map-bar">
+      <select id="map-select" aria-label="Map filter"></select>
+      <label class="chip-toggle"><input type="checkbox" id="places-toggle"> <span>⭐ Saved places</span></label>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <nav class="tabs">
+    <a href="#days" data-tab="days"><span>📅</span>Days</a>
+    <a href="#map" data-tab="map"><span>🗺️</span>Map</a>
+    <a href="#bookings" data-tab="bookings" id="tab-bookings"><span>🧾</span>Bookings</a>
+  </nav>
+
+  <div id="sheet" class="sheet hidden" aria-modal="true" role="dialog">
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-body"><div class="sheet-grip"></div><div id="sheet-content"></div></div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
