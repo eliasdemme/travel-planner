@@ -13,7 +13,7 @@
  */
 const PROPS = PropertiesService.getScriptProperties();
 const MAX_FAILS = 5;          // wrong PINs before PIN entry pauses …
-const LOCK_SECONDS = 21600;   // … for 6 hours (CacheService maximum)
+const LOCK_SECONDS = 120;     // … for 2 minutes (max 21600 = 6 h)
 
 const TABS = {
   Days: ['date', 'country', 'location', 'title'],

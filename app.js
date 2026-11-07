@@ -131,7 +131,7 @@ function applyData(data) {
 // Login: PIN once → server returns a device key (token) that we use from then on.
 // Rules so we never get locked out: saved data is never deleted automatically, network
 // problems never show the PIN screen, and a server lockout ('locked') keeps the saved login.
-const LOCKED_MSG = 'Too many wrong PINs – PIN entry is paused for a few hours ☕';
+const LOCKED_MSG = 'Too many wrong PINs – PIN entry is paused for 2 minutes ☕';
 async function api(body) {
   const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
   try {

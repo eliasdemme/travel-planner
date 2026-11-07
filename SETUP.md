@@ -14,7 +14,7 @@
    - **Bereitstellen** klicken und die **Web-App-URL** kopieren. Sie endet auf `/exec`.
 6. Das Sheet mit Sunny teilen (Bearbeiter). Damit Claude Updates direkt ins Sheet schreiben kann, zusätzlich mit dem Google-Konto teilen, das in Claude verbunden ist.
 
-> **Login & Sperre:** Den PIN braucht jedes Gerät nur einmal. Danach bekommt es einen langen Geräteschlüssel (Script-Eigenschaft `TOKEN`) und nutzt nur noch diesen. Nach 5 falschen PINs pausiert die PIN-Eingabe 6 Stunden, bereits eingeloggte Geräte laden aber weiter. Handy verloren? Eigenschaft `TOKEN` löschen, dann müssen alle Geräte den PIN neu eingeben. PIN-Eingabe sofort wieder freigeben: im Editor `resetLock` ausführen.
+> **Login & Sperre:** Den PIN braucht jedes Gerät nur einmal. Danach bekommt es einen langen Geräteschlüssel (Script-Eigenschaft `TOKEN`) und nutzt nur noch diesen. Nach 5 falschen PINs pausiert die PIN-Eingabe 2 Minuten (`LOCK_SECONDS` in Code.gs), bereits eingeloggte Geräte laden aber weiter. Handy verloren? Eigenschaft `TOKEN` löschen, dann müssen alle Geräte den PIN neu eingeben. PIN-Eingabe sofort wieder freigeben: im Editor `resetLock` ausführen.
 
 > Wenn du später den Script-Code änderst: **Bereitstellen → Bereitstellungen verwalten → Bearbeiten → Version: Neue Version**. Die URL bleibt dabei gleich.
 
