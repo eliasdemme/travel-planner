@@ -1,10 +1,19 @@
 /**
+ * @OnlyCurrentDoc
  * Travel Planner – Google Apps Script (bound to the Google Sheet)
- * 1. Change PIN below (6 digits recommended).
- * 2. Run setup() once (creates tabs, headers, dropdowns).
+ * 1. Project Settings (gear) → Script Properties → add property PIN with your PIN.
+ * 2. Run setup() once (creates tabs, headers, dropdowns). Not needed if the tabs already exist.
  * 3. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone.
+ *
+ * Login: the PIN is only needed once per device. On success the app gets a long random
+ * device key (Script Property TOKEN) and uses that from then on, so wrong-PIN lockouts
+ * never affect phones that are already logged in.
+ * Lost a phone? Delete the TOKEN property → every device must enter the PIN again.
+ * Locked yourself out of PIN entry? Run resetLock() once in the editor.
  */
-const PIN = 'CHANGE-ME';
+const PROPS = PropertiesService.getScriptProperties();
+const MAX_FAILS = 5;          // wrong PINs before PIN entry pauses …
+const LOCK_SECONDS = 21600;   // … for 6 hours (CacheService maximum)
 
 const TABS = {
   Days: ['date', 'country', 'location', 'title'],
@@ -79,15 +88,27 @@ function doGet() {
 }
 
 function doPost(e) {
-  const cache = CacheService.getScriptCache();
-  const fails = Number(cache.get('fails') || 0);
-  if (fails >= 10) return json({ error: 'locked' });
   let body = {};
   try { body = JSON.parse(e.postData.contents); } catch (err) {}
-  if (PIN === 'CHANGE-ME' || String(body.pin) !== PIN) {
-    cache.put('fails', String(fails + 1), 600);
+  // 1) Device key: unguessable, never locked out.
+  const token = PROPS.getProperty('TOKEN');
+  if (body.token) return json(token && body.token === token ? readData_() : { error: 'token' });
+  // 2) PIN: rate-limited for everyone.
+  const cache = CacheService.getScriptCache();
+  const fails = Number(cache.get('fails') || 0);
+  if (fails >= MAX_FAILS) return json({ error: 'locked' });
+  const pin = PROPS.getProperty('PIN');
+  if (!pin || String(body.pin || '') !== pin) {
+    cache.put('fails', String(fails + 1), LOCK_SECONDS);
     return json({ error: 'pin' });
   }
+  cache.remove('fails');
+  const out = readData_();
+  out.token = deviceToken_();
+  return json(out);
+}
+
+function readData_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const out = { updated: new Date().toISOString() };
   Object.keys(TABS).forEach(function (name) {
@@ -99,8 +120,17 @@ function doPost(e) {
       .filter(function (r) { return r.join('') !== ''; })
       .map(function (r) { const o = {}; head.forEach(function (h, i) { if (h && r[i] !== '') o[h] = r[i]; }); return o; });
   });
-  return json(out);
+  return out;
 }
+
+function deviceToken_() {
+  let t = PROPS.getProperty('TOKEN');
+  if (!t) { t = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, ''); PROPS.setProperty('TOKEN', t); }
+  return t;
+}
+
+/** Run manually if PIN entry is paused (too many wrong PINs). */
+function resetLock() { CacheService.getScriptCache().remove('fails'); }
 
 function json(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);

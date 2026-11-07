@@ -68,7 +68,8 @@ const money = (n, cur = home()) => n == null ? '' : `${cur} ${Math.round(n).toLo
 const who = name => name === (S.traveler_2 || 'Sunny') ? `☀️ ${esc(name)}` : esc(name || '');
 const hasGeo = it => it && num(it.lat) != null && num(it.lng) != null;
 const geoStr = it => hasGeo(it) ? `${num(it.lat)},${num(it.lng)}` : (it.place || '');
-const mapsLink = it => it.maps_url || (it.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(it.place)}`
+const safeUrl = u => /^(https?:\/\/|tel:|#)/i.test(String(u || '').trim()) ? String(u).trim() : '';
+const mapsLink = it => safeUrl(it.maps_url) || (it.place ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(it.place)}`
   : hasGeo(it) ? `https://www.google.com/maps/search/?api=1&query=${geoStr(it)}` : '');
 const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 6e4); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
 
@@ -127,6 +128,23 @@ function applyData(data) {
   greet(); route();
 }
 
+// Login: PIN once → server returns a device key (token) that we use from then on.
+// Rules so we never get locked out: saved data is never deleted automatically, network
+// problems never show the PIN screen, and a server lockout ('locked') keeps the saved login.
+const LOCKED_MSG = 'Too many wrong PINs – PIN entry is paused for a few hours ☕';
+async function api(body) {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+  try {
+    const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), signal: ctl.signal });
+    return await res.json();   // HTML error pages / captive portals throw here → treated as offline
+  } finally { clearTimeout(timer); }
+}
+function saveLogin(data, pin) {
+  if (data.token) { LS.set('token', data.token); LS.del('pin'); delete data.token; }
+  else if (pin) LS.set('pin', pin);   // older script without device keys
+}
+const hasSaved = () => !!LS.get('data');
+
 async function load() {
   document.body.classList.add('loading');
   try {
@@ -134,11 +152,15 @@ async function load() {
     if (DEMO) {
       data = await (await fetch('demo-data.json', { cache: 'no-store' })).json();
     } else {
-      const pin = LS.get('pin');
-      if (!pin) return showPin();
-      const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ pin }) });
-      data = await res.json();
-      if (data.error) { LS.del('pin'); return showPin(data.error === 'locked' ? 'Too many tries. Take a 10-minute chai break ☕' : null); }
+      const token = LS.get('token'), pin = LS.get('pin');
+      if (!token && !pin) return showPin();
+      data = await api(token ? { token } : { pin });
+      if (data.error === 'locked') { online = true; toast(hasSaved() ? 'Server paused PIN logins – showing saved data' : LOCKED_MSG); if (!hasSaved()) showPin(LOCKED_MSG); return; }
+      if (data.error) {                 // wrong PIN / revoked device key: ask again, keep saved data
+        LS.del(token ? 'token' : 'pin');
+        return showPin(token ? 'Please enter the PIN again' : null);
+      }
+      saveLogin(data, pin);
       LS.set('data', JSON.stringify(data));
     }
     online = true; applyData(data);
@@ -152,24 +174,25 @@ async function load() {
 
 function showPin(msg) {
   $('#pin').classList.remove('hidden');
+  $('#pin-offline').classList.toggle('hidden', !hasSaved());
   const m = $('#pin-msg'); m.textContent = msg || '';
   if (msg) { $('.pin-card').classList.remove('shake'); void m.offsetWidth; $('.pin-card').classList.add('shake'); }
   setTimeout(() => $('#pin-input').focus(), 100);
 }
+$('#pin-offline').addEventListener('click', () => $('#pin').classList.add('hidden'));
 let pinTries = 0;
 $('#pin-form').addEventListener('submit', async e => {
   e.preventDefault();
   const pin = $('#pin-input').value.trim(); if (!pin) return;
-  LS.set('pin', pin); $('#pin-input').value = '';
+  $('#pin-input').value = '';
   document.body.classList.add('loading');
   try {
-    const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ pin }) });
-    const data = await res.json();
+    const data = await api({ pin });
     if (data.error) {
-      LS.del('pin');
-      showPin(data.error === 'locked' ? 'Too many tries. Take a 10-minute chai break ☕' : PIN_FAILS[pinTries++ % PIN_FAILS.length]);
+      showPin(data.error === 'locked' ? LOCKED_MSG : PIN_FAILS[pinTries++ % PIN_FAILS.length]);
     } else {
-      LS.set('data', JSON.stringify(data)); $('#pin').classList.add('hidden');
+      saveLogin(data, pin);
+      LS.set('data', JSON.stringify(data)); $('#pin').classList.add('hidden'); online = true;
       applyData(data); toast(`Namaste, ${S.traveler_1 || 'Elias'} & ${S.traveler_2 || 'Sunny'} 🙏`);
     }
   } catch (err) { showPin('No connection. Try again when online.'); }
@@ -380,7 +403,7 @@ function openItem(id) {
     <div class="btn-row">
       ${link ? `<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">📍 Google Maps</a>` : ''}
       ${phone ? `<a class="btn" href="tel:${esc(phone)}">📞 Call</a><a class="btn" href="https://wa.me/${esc(phone.replace('+', ''))}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ''}
-      ${it.doc_link ? `<a class="btn" href="${esc(it.doc_link)}" target="_blank" rel="noopener">📄 Confirmation</a>` : ''}
+      ${safeUrl(it.doc_link) ? `<a class="btn" href="${esc(safeUrl(it.doc_link))}" target="_blank" rel="noopener">📄 Confirmation</a>` : ''}
     </div>
     ${bookingMode || it.ref ? `<div class="section-title">Booking</div><div class="card" style="padding:4px 14px">
       ${kv('Status', esc(it.status || '–'))}${kv('Ref', it.ref ? `<span id="ref-copy" style="text-decoration:underline dotted">${esc(it.ref)}</span>` : '')}

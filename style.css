@@ -232,3 +232,4 @@ body.loading #refresh { animation: spin .9s linear infinite; }
 @keyframes bloom { from { transform: scale(.2) rotate(-40deg); opacity: 0; } }
 @keyframes drift { 25% { transform: translate(30px, 28vh) rotate(90deg); } 50% { transform: translate(-20px, 55vh) rotate(200deg); } 75% { transform: translate(25px, 82vh) rotate(300deg); } to { transform: translate(-10px, 110vh) rotate(400deg); } }
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } .petal { display: none; } }
+#pin-offline { margin-top: 6px; width: 100%; }
