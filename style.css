@@ -1,6 +1,6 @@
 :root {
-  --bg: #FBF6EE; --card: #FFFFFF; --ink: #2A2420; --muted: #8A7F75; --line: #EFE6D8;
-  --india: #E8730C; --india-soft: #FDEBD8; --lanka: #0E8A86; --lanka-soft: #DDF2EF;
+  --bg: #FFFBF5; --card: #FFFFFF; --ink: #2E2824; --muted: #958A80; --line: #F3EBDF;
+  --india: #EE7D1A; --india-soft: #FFF0E0; --lanka: #129A95; --lanka-soft: #E3F6F3;
   --accent: var(--india); --warn: #C2410C; --warn-soft: #FFE8D6; --ok: #2F855A; --ok-soft: #DDF3E4;
   --open: #B7791F; --open-soft: #FDF2D3; --shadow: 0 1px 2px rgba(60,40,20,.06), 0 4px 14px rgba(60,40,20,.06);
   --radius: 16px; --display: 'Fraunces', Georgia, serif;
@@ -9,9 +9,9 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #16130F; --card: #221E19; --ink: #F3ECE2; --muted: #A39787; --line: #332C25;
-    --india: #F59E4A; --india-soft: #3A2716; --lanka: #3CC2B8; --lanka-soft: #13312E;
-    --warn: #FB923C; --warn-soft: #3B2414; --ok: #68D391; --ok-soft: #173023; --open: #F6C453; --open-soft: #3A3014;
+    --bg: #28231E; --card: #35302A; --ink: #F6F0E7; --muted: #B5A999; --line: #463E35;
+    --india: #F8A65A; --india-soft: #4C3522; --lanka: #4FCDC3; --lanka-soft: #1F433F;
+    --warn: #FB9A50; --warn-soft: #4D301D; --ok: #74DA9B; --ok-soft: #21402F; --open: #F7CB62; --open-soft: #4A3E1E;
     --shadow: none; color-scheme: dark;
   }
 }
@@ -198,3 +198,36 @@ body.lanka { --accent: var(--lanka); }
 #view.c-lanka { --accent: var(--lanka); }
 #view.c-india { --accent: var(--india); }
 @media (prefers-color-scheme: dark) { .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); } }
+
+/* ---------- Day view: no global header, clean back button ---------- */
+body.dayview .top { display: none; }
+body.dayview main { padding-top: calc(env(safe-area-inset-top) + 6px); }
+.back-btn { border: 0; background: none; color: var(--accent); font-size: 17px; font-weight: 600; padding: 10px 2px 4px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.back-btn span { font-size: 26px; line-height: 0; margin-top: -3px; }
+.dayhead { position: relative; overflow: hidden; }
+.dayhead > *:not(.decor) { position: relative; z-index: 1; }
+.decor { position: absolute; right: -6px; bottom: -14px; font-size: 84px; opacity: .22; transform-origin: bottom center; animation: sway 6s ease-in-out infinite; pointer-events: none; }
+.slide-out { transition: transform .16s ease-in, opacity .16s; transform: translateX(40%); opacity: 0; }
+main > * { animation: rise .35s ease-out both; }
+#view.c-india > *, #view.c-lanka > * { animation-duration: .3s; }
+
+/* ---------- Whimsy ---------- */
+.hero { padding-top: 30px; }
+.garland { position: absolute; top: -4px; left: 0; right: 0; display: flex; justify-content: space-around; pointer-events: none; }
+.garland span { font-size: 15px; transform-origin: top center; animation: swing 2.8s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -.37s); }
+.garland::before { content: ''; position: absolute; top: 4px; left: 0; right: 0; height: 10px; border-bottom: 1.5px solid color-mix(in srgb, var(--india) 45%, transparent); border-radius: 0 0 50% 50%; z-index: -1; }
+.day-row { animation: rise .4s ease-out both; animation-delay: calc(min(var(--i, 0), 14) * 28ms); }
+.chip { animation: pop .3s cubic-bezier(.3,1.6,.5,1) both; }
+body.loading #refresh { animation: spin .9s linear infinite; }
+.tabs a.active span { animation: bounce .45s cubic-bezier(.3,1.6,.5,1); }
+.pin-logo { animation: float 4s ease-in-out infinite, bloom .8s cubic-bezier(.3,1.6,.5,1) both; }
+.petal.drift { top: -30px; font-size: 18px; opacity: .55; animation: drift 11s linear forwards; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+@keyframes pop { from { opacity: 0; transform: scale(.6); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes bounce { 40% { transform: translateY(-5px) scale(1.15); } }
+@keyframes swing { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+@keyframes sway { 50% { transform: rotate(-6deg) translateY(-3px); } }
+@keyframes bloom { from { transform: scale(.2) rotate(-40deg); opacity: 0; } }
+@keyframes drift { 25% { transform: translate(30px, 28vh) rotate(90deg); } 50% { transform: translate(-20px, 55vh) rotate(200deg); } 75% { transform: translate(25px, 82vh) rotate(300deg); } to { transform: translate(-10px, 110vh) rotate(400deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } .petal { display: none; } }

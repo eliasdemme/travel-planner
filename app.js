@@ -15,7 +15,7 @@ let D = { days: [], items: [], places: [], settings: [] };
 let S = {};          // settings as key → value
 let online = true;
 let bookingMode = LS.get('bookingMode') === '1';
-let map, mapLayer;
+let map, mapLayer, lastDay = null;
 
 const EMOJI = { stay: '🛏️', flight: '✈️', train: '🚆', transfer: '🚗', activity: '📍', food: '🍛', admin: '📄' };
 const FLAG = { 'India': '🇮🇳', 'Sri Lanka': '🇱🇰' };
@@ -210,6 +210,7 @@ function route() {
   document.querySelectorAll('.tabs a').forEach(a => a.classList.toggle('active', a.dataset.tab === (tab === 'day' ? 'days' : tab)));
   document.documentElement.style.setProperty('--head-h', $('.top').offsetHeight + 'px');
   $('#view').className = tab === 'day' && arg ? cc(arg) : '';
+  document.body.classList.toggle('dayview', tab === 'day' && !!arg);
   const isMap = tab === 'map';
   $('#map-wrap').classList.toggle('hidden', !isMap);
   $('#view').classList.toggle('hidden', isMap);
@@ -218,12 +219,25 @@ function route() {
   else if (tab === 'bookings' && bookingMode) renderBookings();
   else renderDays();
 }
-window.addEventListener('hashchange', () => { route(); window.scrollTo(0, 0); });
+window.addEventListener('hashchange', () => { window.scrollTo(0, 0); route(); });
+
+// Swipe right in a day view → back to the overview
+let touch = null;
+document.addEventListener('touchstart', e => { const t = e.touches[0]; touch = { x: t.clientX, y: t.clientY, t: Date.now() }; }, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!touch || !document.body.classList.contains('dayview') || !$('#sheet').classList.contains('hidden')) return;
+  const t = e.changedTouches[0], dx = t.clientX - touch.x, dy = Math.abs(t.clientY - touch.y);
+  if (dx > 70 && dy < 60 && Date.now() - touch.t < 700) {
+    $('#view').classList.add('slide-out'); setTimeout(() => { location.hash = 'days'; }, 160);
+  }
+  touch = null;
+}, { passive: true });
 
 /* ---------- Days list ---------- */
 function renderDays() {
   const t = today(), list = days(), s = tripStart(), e = tripEnd();
   let hero = '';
+  const garland = `<div class="garland" aria-hidden="true">${Array.from({ length: 11 }, (_, i) => `<span style="--i:${i}">${i % 2 ? '🏵️' : '🌼'}</span>`).join('')}</div>`;
   if (s && t >= s && t <= e) {
     const st = stayFor(t);
     hero = `<div class="card hero"><h2>Today in ${esc(dayInfo(t).location || '…')}</h2>
@@ -234,10 +248,11 @@ function renderDays() {
     hero = `<div class="card hero"><h2>${n === 1 ? 'Bags packed?' : `${n} days to go`}</h2>
       <p>${fmtDay(s)} – ${fmtDay(e)} · ${list.length} days · ${new Set(list.map(d => d.location).filter(Boolean)).size} places</p></div>`;
   } else if (e && t > e) hero = summaryCard();
+  hero = hero.replace('<div class="card hero">', `<div class="card hero">${garland}`);
   if (DEMO) hero += `<div class="demo">Demo data – connect the Google Sheet in config.js</div>`;
   else if (D.updated) hero += `<p class="muted" style="font-size:12px;text-align:center;margin:6px 0 0">${online ? 'Updated' : 'Offline · data from'} ${ago(D.updated)}</p>`;
 
-  let html = hero, lastC = '';
+  let html = hero, lastC = '', rowI = 0;
   list.forEach(d => {
     const c = d.country || 'India';
     if (c !== lastC) {
@@ -247,14 +262,17 @@ function renderDays() {
     const st = stayFor(d.date), cls = [cc(d.date), d.date === t ? 'today' : '', d.date < t ? 'past' : ''].join(' ');
     const flags = bookingMode ? (d.date !== e && !st ? '<span class="dot warn"></span>' : dayHasOpen(d.date) ? '<span class="dot open"></span>' : '') : '';
     const sub = st ? `🛏️ ${esc(st.title)}` : d.date === e ? '🏠 Home' : '<span style="color:var(--warn)">🛏️ no stay yet</span>';
-    html += `<button class="day-row ${cls}" onclick="location.hash='day/${d.date}'">
+    html += `<button class="day-row ${cls}" id="d-${d.date}" style="--i:${rowI++}" onclick="location.hash='day/${d.date}'">
       <div class="dnum"><b>${dateOf(d.date).getDate()}</b><span>${fmt(d.date, { month: 'short' })}</span></div>
       <div class="dmain"><div class="dtitle">${esc(d.location || fmt(d.date, { weekday: 'long' }))}${d.title ? ` · <span style="font-weight:400">${esc(d.title)}</span>` : ''}</div>
       <div class="dsub">${fmt(d.date, { weekday: 'short' })} · ${sub}</div></div>${flags}</button>`;
   });
   if (!list.length) html += `<div class="empty">No days yet. Fill the <b>Days</b> tab in the sheet.</div>`;
   $('#view').innerHTML = html;
-  const td = $('.day-row.today'); if (td && !renderDays.scrolled) { renderDays.scrolled = true; td.scrollIntoView({ block: 'center' }); }
+  // Coming back from a day → land on that day; first open → land on today
+  const back = lastDay && document.getElementById('d-' + lastDay);
+  if (back) { back.scrollIntoView({ block: 'center' }); lastDay = null; }
+  else { const td = $('.day-row.today'); if (td && !renderDays.scrolled) { renderDays.scrolled = true; td.scrollIntoView({ block: 'center' }); } }
 }
 
 function summaryCard() {
@@ -279,6 +297,9 @@ function renderDay(iso) {
   if (idx < 0) { if (D.days.length) location.hash = 'days'; return; }
   const d = list[idx], prev = list[idx - 1], next = list[idx + 1], st = stayFor(iso), items = itemsOn(iso);
   const crossed = prev && (prev.country || 'India') !== (d.country || 'India');
+  // Short summary: the day's title from the sheet, otherwise the first few plan items
+  const summary = d.title || items.filter(i => i.type !== 'flight').slice(0, 3).map(i => i.title).join(' · ');
+  lastDay = iso;
 
   let sleep;
   if (st) {
@@ -289,9 +310,9 @@ function renderDay(iso) {
   else sleep = `<div class="card sleep missing"><div class="emoji">⚠️</div><div class="sleep-title">No place to sleep yet</div></div>`;
 
   const rows = [];
-  checkoutOn(iso).forEach(s => rows.push({ it: s, time: s.end_time || '', title: `Check-out · ${s.title}`, emoji: '🧳', notes: '' }));
-  items.forEach(it => rows.push({ it, time: it.time || '', title: it.title, emoji: EMOJI[it.type] || '📍', notes: it.notes }));
-  rows.sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+  checkoutOn(iso).forEach(s => rows.push({ it: s, time: s.end_time || '', sort: s.end_time || '00', title: `Check-out · ${s.title}`, emoji: '🧳', notes: '' }));
+  items.forEach(it => rows.push({ it, time: it.time || '', sort: it.time || '99', title: it.title, emoji: EMOJI[it.type] || '📍', notes: it.notes }));
+  rows.sort((a, b) => a.sort.localeCompare(b.sort));
   const tl = rows.length ? rows.map(r => `<div class="t-item" data-item="${esc(r.it.id)}">
       <div class="t-time">${esc(r.time) || '·'}</div>
       <div class="t-main"><div class="t-title">${r.emoji} ${esc(r.title)}${r.it.end_time && r.it.type !== 'stay' ? ` <span class="muted" style="font-weight:400">→ ${esc(r.it.end_time)}</span>` : ''}</div>
@@ -300,14 +321,16 @@ function renderDay(iso) {
 
   const routeUrl = dayRoute(iso);
   $('#view').innerHTML = `
+    <button class="back-btn" onclick="location.hash='days'"><span>‹</span> All days</button>
     <div class="dayhead ${cc(iso)}">
+      <div class="decor" aria-hidden="true">${countryOf(iso) === 'Sri Lanka' ? '🌴' : '🪷'}</div>
       <div class="dayhead-nav">
         <button class="nav-btn" ${prev ? `onclick="location.hash='day/${prev.date}'"` : 'disabled'}>‹ ${prev ? fmt(prev.date, { day: 'numeric', month: 'short' }) : ''}</button>
-        <button class="daybadge" id="daybadge">Day ${idx + 1}</button>
+        <button class="daybadge" id="daybadge">${fmt(iso, { weekday: 'short', day: 'numeric', month: 'short' })}</button>
         <button class="nav-btn" ${next ? `onclick="location.hash='day/${next.date}'"` : 'disabled'}>${next ? fmt(next.date, { day: 'numeric', month: 'short' }) : ''} ›</button>
       </div>
       <h2>${esc(d.location || fmt(iso, { weekday: 'long' }))}</h2>
-      <p>${fmt(iso, { weekday: 'long', day: 'numeric', month: 'long' })}${d.title ? ' · ' + esc(d.title) : ''}</p>
+      ${summary ? `<p>${esc(summary)}</p>` : ''}
       ${crossed ? `<div class="border-cross">${FLAG[prev.country] || ''} → ${FLAG[d.country] || ''} Welcome to ${esc(d.country)}!</div>` : ''}
     </div>
     <div class="section-title">Sleep</div>${sleep}
@@ -464,6 +487,15 @@ function drawMap(iso) {
   else if (pts.length === 1) map.setView(pts[0], 14);
   else if (iso) toast('No locations with coordinates for this day');
 }
+
+// Now and then a single petal drifts across the overview
+setInterval(() => {
+  if (document.hidden || (location.hash && location.hash !== '#days') || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const p = document.createElement('span'); p.className = 'petal drift';
+  p.textContent = ['🌸', '🌼', '🍃'][Math.floor(Math.random() * 3)];
+  p.style.left = 10 + Math.random() * 70 + 'vw';
+  document.body.appendChild(p); setTimeout(() => p.remove(), 12000);
+}, 15000);
 
 /* ---------- start ---------- */
 const cached = LS.get('data');

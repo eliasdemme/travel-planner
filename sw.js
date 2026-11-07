@@ -1,5 +1,5 @@
 // Offline cache: app shell stale-while-revalidate, map tiles cache-first, data stays in localStorage.
-const V = 'trip-v1';
+const V = 'trip-v2';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'manifest.json', 'icons/icon-180.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'];
