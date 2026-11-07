@@ -1,6 +1,6 @@
 // Offline cache: app shell stale-while-revalidate, map tiles cache-first, data stays in localStorage.
-const V = 'trip-v2';
-const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'manifest.json', 'icons/icon-180.png',
+const V = 'trip-v3';
+const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'game.js', 'config.js', 'manifest.json', 'icons/icon-180.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });

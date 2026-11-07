@@ -188,11 +188,15 @@ function greet() {
   }
   $('#greeting').innerHTML = g;
 }
-let brandTaps = 0;
+// 5 quick taps on the title → marigold rain, keep going to 7 → Sunny's mini-game
+let brandTaps = 0, brandTimer;
 $('#brand').addEventListener('click', () => {
-  brandTaps++; clearTimeout(brandTaps.t);
-  if (brandTaps >= 5) { brandTaps = 0; rain(); toast('Marigolds for you two 🌼'); }
-  setTimeout(() => { brandTaps = 0; }, 1500);
+  brandTaps++; clearTimeout(brandTimer);
+  brandTimer = setTimeout(() => {
+    if (brandTaps >= 5 && brandTaps < 7) { rain(); toast('Marigolds for you two 🌼'); }
+    brandTaps = 0;
+  }, 700);
+  if (brandTaps >= 7) { brandTaps = 0; clearTimeout(brandTimer); window.startSunnyGame && startSunnyGame(); }
 });
 $('#refresh').addEventListener('click', load);
 const toggle = $('#booking-toggle');
@@ -321,7 +325,6 @@ function renderDay(iso) {
 
   const routeUrl = dayRoute(iso);
   $('#view').innerHTML = `
-    <button class="back-btn" onclick="location.hash='days'"><span>‹</span> All days</button>
     <div class="dayhead ${cc(iso)}">
       <div class="decor" aria-hidden="true">${countryOf(iso) === 'Sri Lanka' ? '🌴' : '🪷'}</div>
       <div class="dayhead-nav">

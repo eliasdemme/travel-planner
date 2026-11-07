@@ -200,9 +200,10 @@ body.lanka { --accent: var(--lanka); }
 @media (prefers-color-scheme: dark) { .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); } }
 
 /* ---------- Day view: no global header, clean back button ---------- */
-body.dayview .top { display: none; }
-body.dayview main { padding-top: calc(env(safe-area-inset-top) + 6px); }
-.back-btn { border: 0; background: none; color: var(--accent); font-size: 17px; font-weight: 600; padding: 10px 2px 4px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+#back { display: none; }
+body.dayview #back { display: inline-flex; flex: 1; }
+body.dayview .brand { display: none; }
+.back-btn { border: 0; background: none; color: var(--accent); font-size: 17px; font-weight: 600; padding: 8px 2px; align-items: center; gap: 4px; cursor: pointer; justify-content: flex-start; }
 .back-btn span { font-size: 26px; line-height: 0; margin-top: -3px; }
 .dayhead { position: relative; overflow: hidden; }
 .dayhead > *:not(.decor) { position: relative; z-index: 1; }
